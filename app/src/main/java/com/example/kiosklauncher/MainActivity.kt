@@ -6,6 +6,7 @@ import android.text.InputType
 import android.view.View
 import android.widget.EditText
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
@@ -23,6 +24,15 @@ class MainActivity : AppCompatActivity() {
         binding.adminCornerTrigger.setOnClickListener {
             showPinDialog()
         }
+
+        // This is the home screen — there's nowhere to "go back" to, so
+        // pressing back here should simply do nothing instead of falling
+        // through to the system Recents/Overview screen.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // no-op: swallow the back press
+            }
+        })
 
         // If the device is already the owner and kiosk lock is enabled,
         // re-enter lock task mode automatically (e.g. after a relaunch).
