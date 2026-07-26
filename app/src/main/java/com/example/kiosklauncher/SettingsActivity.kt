@@ -30,6 +30,7 @@ class SettingsActivity : AppCompatActivity() {
         binding.changePinButton.setOnClickListener { changePin() }
         binding.enableLockButton.setOnClickListener { enableFullLock() }
         binding.disableLockButton.setOnClickListener { disableFullLock() }
+        binding.removeAdminButton.setOnClickListener { confirmRemoveAdminAndUninstall() }
     }
 
     private fun saveSelectedApps() {
@@ -87,5 +88,32 @@ class SettingsActivity : AppCompatActivity() {
         }
         Toast.makeText(this, "נעילת קיוסק בוטלה", Toast.LENGTH_SHORT).show()
         finish()
+    }
+
+    private fun confirmRemoveAdminAndUninstall() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("הסרת האפליקציה")
+            .setMessage("פעולה זו תסיר את הרשאות ניהול המכשיר ותמחק את האפליקציה לגמרי מהמכשיר. להמשיך?")
+            .setPositiveButton("הסר ומחק") { _, _ -> removeAdminAndUninstall() }
+            .setNegativeButton("ביטול", null)
+            .show()
+    }
+
+    private fun removeAdminAndUninstall() {
+        CoroutineScope(Dispatchers.Main).launch {
+            val success = withContext(Dispatchers.IO) {
+                if (!RootUtils.isRootAvailable()) return@withContext false
+                RootUtils.removeDeviceOwnerAndUninstall(this@SettingsActivity)
+            }
+            if (!success) {
+                Toast.makeText(
+                    this@SettingsActivity,
+                    "לא ניתן היה להסיר את האפליקציה. ודא שיש הרשאת root.",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            // If successful, the app is uninstalled by this point and this
+            // process will be killed by the system shortly on its own.
+        }
     }
 }

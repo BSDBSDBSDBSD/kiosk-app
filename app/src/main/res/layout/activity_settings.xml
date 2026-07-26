@@ -54,4 +54,13 @@
         android:layout_marginTop="8dp"
         android:text="בטל נעילת קיוסק" />
 
+    <Button
+        android:id="@+id/removeAdminButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:backgroundTint="#C0392B"
+        android:textColor="#FFFFFF"
+        android:text="הסר ניהול מכשיר והתקן (מחיקת האפליקציה)" />
+
 </LinearLayout>
