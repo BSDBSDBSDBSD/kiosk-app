@@ -19,13 +19,18 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:padding="16dp"
+        android:paddingTop="64dp"
         android:clipToPadding="false" />
 
-    <!-- invisible long-press zone in the bottom-right corner to open the PIN dialog -->
-    <View
+    <!-- visible settings/admin access icon, top-right, away from system gesture areas -->
+    <ImageButton
         android:id="@+id/adminCornerTrigger"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:layout_gravity="bottom|end" />
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_margin="8dp"
+        android:layout_gravity="top|end"
+        android:background="@android:color/transparent"
+        android:src="@android:drawable/ic_menu_manage"
+        android:contentDescription="הגדרות מנהל" />
 
 </FrameLayout>

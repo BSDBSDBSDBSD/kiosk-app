@@ -20,9 +20,8 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.adminCornerTrigger.setOnLongClickListener {
+        binding.adminCornerTrigger.setOnClickListener {
             showPinDialog()
-            true
         }
 
         // If the device is already the owner and kiosk lock is enabled,
