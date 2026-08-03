@@ -55,4 +55,23 @@ object KioskManager {
         }
         manager.setKeyguardDisabled(admin, false)
     }
+
+    /**
+     * Official, no-root way for a Device Owner app to give up its own
+     * Device Owner status. Does NOT uninstall the app and does NOT reboot
+     * the device — the app keeps working normally afterwards, just without
+     * kiosk-enforcement powers. Can be re-granted later via root if needed.
+     * Returns true if the app was released successfully.
+     */
+    fun clearDeviceOwner(context: Context): Boolean {
+        if (!isDeviceOwner(context)) return true
+        return try {
+            releaseRestrictions(context)
+            dpm(context).clearDeviceOwnerApp(context.packageName)
+            true
+        } catch (e: SecurityException) {
+            e.printStackTrace()
+            false
+        }
+    }
 }

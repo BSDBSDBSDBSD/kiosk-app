@@ -135,14 +135,21 @@
             android:text="בטל נעילת קיוסק" />
 
         <Button
-            android:id="@+id/removeAdminButton"
+            android:id="@+id/clearOwnerButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
+            android:text="הסר הרשאות Device Owner (בלי מחיקה ובלי אתחול)" />
+
+        <Button
+            android:id="@+id/removeAdminButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
             android:layout_marginBottom="24dp"
             android:backgroundTint="#C0392B"
             android:textColor="#FFFFFF"
-            android:text="הסר ניהול מכשיר והתקן (מחיקת האפליקציה)" />
+            android:text="הסר ניהול מכשיר והתקן (מחיקה מלאה + אתחול)" />
 
     </LinearLayout>
 

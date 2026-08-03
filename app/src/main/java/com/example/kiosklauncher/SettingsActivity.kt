@@ -47,6 +47,7 @@ class SettingsActivity : AppCompatActivity() {
         binding.setHomeButton.setOnClickListener { openHomeSettings() }
         binding.enableLockButton.setOnClickListener { enableFullLock() }
         binding.disableLockButton.setOnClickListener { disableFullLock() }
+        binding.clearOwnerButton.setOnClickListener { confirmClearDeviceOwner() }
         binding.removeAdminButton.setOnClickListener { confirmRemoveAdmin() }
 
         setupConnectivitySwitches()
@@ -130,6 +131,33 @@ class SettingsActivity : AppCompatActivity() {
         }
         Toast.makeText(this, "נעילת קיוסק בוטלה", Toast.LENGTH_SHORT).show()
         finish()
+    }
+
+    private fun confirmClearDeviceOwner() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("הסרת הרשאות Device Owner")
+            .setMessage(
+                "פעולה זו תסיר את סטטוס ה-Device Owner ואת הגבלות הקיוסק (Status Bar / Keyguard), " +
+                    "אבל האפליקציה תישאר מותקנת ואפשר להמשיך להשתמש בה כלאנצ'ר רגיל. " +
+                    "בלי מחיקה ובלי אתחול. להמשיך?"
+            )
+            .setPositiveButton("הסר") { _, _ -> clearDeviceOwner() }
+            .setNegativeButton("ביטול", null)
+            .show()
+    }
+
+    private fun clearDeviceOwner() {
+        KioskPrefs.setLockEnabled(this, false)
+        val success = KioskManager.clearDeviceOwner(this)
+        if (success) {
+            Toast.makeText(this, "הרשאות Device Owner הוסרו. האפליקציה נשארה מותקנת.", Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(
+                this,
+                "לא ניתן היה להסיר את ההרשאות בדרך זו - נסה את הכפתור האדום (דורש root ואתחול).",
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
     private fun confirmRemoveAdmin() {
