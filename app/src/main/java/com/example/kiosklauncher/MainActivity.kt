@@ -1,7 +1,11 @@
 package com.example.kiosklauncher
 
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
 import android.os.Bundle
+import android.net.wifi.WifiManager
 import android.text.InputType
 import android.view.View
 import android.widget.EditText
@@ -21,8 +25,9 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.adminCornerTrigger.setOnClickListener {
+        binding.adminCornerTrigger.setOnLongClickListener {
             showPinDialog()
+            true
         }
 
         // This is the home screen — there's nowhere to "go back" to, so
@@ -46,6 +51,22 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         loadGrid()
+        updateStatusText()
+    }
+
+    private fun updateStatusText() {
+        val batteryIntent = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        val level = batteryIntent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+        val scale = batteryIntent?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
+        val batteryPct = if (level >= 0 && scale > 0) (level * 100 / scale) else -1
+
+        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val wifiOn = try { wifiManager.isWifiEnabled } catch (e: Exception) { false }
+
+        val parts = mutableListOf<String>()
+        if (batteryPct >= 0) parts.add("סוללה $batteryPct%")
+        parts.add(if (wifiOn) "Wi-Fi מופעל" else "Wi-Fi כבוי")
+        binding.statusText.text = parts.joinToString("   •   ")
     }
 
     private fun loadGrid() {

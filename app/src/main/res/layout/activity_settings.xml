@@ -1,66 +1,149 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:layout_height="match_parent">
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="בחר אפליקציות שיוצגו בקיוסק:"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="8dp" />
+        android:orientation="vertical"
+        android:padding="12dp">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/settingsAppsRecyclerView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="בחר אפליקציות שיוצגו בקיוסק:"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
 
-    <EditText
-        android:id="@+id/newPinField"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="קוד PIN חדש (4 ספרות)"
-        android:inputType="numberPassword"
-        android:layout_marginTop="8dp" />
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/settingsAppsRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="260dp" />
 
-    <Button
-        android:id="@+id/changePinButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="שנה סיסמה" />
+        <Button
+            android:id="@+id/saveAppsButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="שמור בחירת אפליקציות" />
 
-    <Button
-        android:id="@+id/saveAppsButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="שמור בחירת אפליקציות" />
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:background="#DDDDDD" />
 
-    <Button
-        android:id="@+id/enableLockButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="הפעל נעילת קיוסק מלאה (דורש root)" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="חיבוריות"
+            android:textSize="16sp"
+            android:textStyle="bold" />
 
-    <Button
-        android:id="@+id/disableLockButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="בטל נעילת קיוסק" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="8dp">
 
-    <Button
-        android:id="@+id/removeAdminButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:backgroundTint="#C0392B"
-        android:textColor="#FFFFFF"
-        android:text="הסר ניהול מכשיר והתקן (מחיקת האפליקציה)" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Wi-Fi"
+                android:textSize="15sp" />
 
-</LinearLayout>
+            <Switch
+                android:id="@+id/wifiSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Bluetooth"
+                android:textSize="15sp" />
+
+            <Switch
+                android:id="@+id/bluetoothSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="16dp"
+            android:background="#DDDDDD" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="אבטחה"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <EditText
+            android:id="@+id/newPinField"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="קוד PIN חדש (4 ספרות)"
+            android:inputType="numberPassword"
+            android:layout_marginTop="8dp" />
+
+        <Button
+            android:id="@+id/changePinButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="שנה סיסמה" />
+
+        <Button
+            android:id="@+id/setHomeButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="הגדר כמסך בית ברירת מחדל" />
+
+        <Button
+            android:id="@+id/enableLockButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="הפעל נעילת קיוסק מלאה (דורש root)" />
+
+        <Button
+            android:id="@+id/disableLockButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="בטל נעילת קיוסק" />
+
+        <Button
+            android:id="@+id/removeAdminButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="24dp"
+            android:backgroundTint="#C0392B"
+            android:textColor="#FFFFFF"
+            android:text="הסר ניהול מכשיר והתקן (מחיקת האפליקציה)" />
+
+    </LinearLayout>
+
+</ScrollView>

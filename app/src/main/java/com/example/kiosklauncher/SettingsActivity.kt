@@ -1,8 +1,17 @@
 package com.example.kiosklauncher
 
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.wifi.WifiManager
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.kiosklauncher.databinding.ActivitySettingsBinding
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +30,13 @@ class SettingsActivity : AppCompatActivity() {
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 1001)
+        }
+
         appList.addAll(AppRepository.getLaunchableApps(this))
         adapter = SettingsAppsAdapter(appList)
         binding.settingsAppsRecyclerView.layoutManager = LinearLayoutManager(this)
@@ -28,9 +44,12 @@ class SettingsActivity : AppCompatActivity() {
 
         binding.saveAppsButton.setOnClickListener { saveSelectedApps() }
         binding.changePinButton.setOnClickListener { changePin() }
+        binding.setHomeButton.setOnClickListener { openHomeSettings() }
         binding.enableLockButton.setOnClickListener { enableFullLock() }
         binding.disableLockButton.setOnClickListener { disableFullLock() }
-        binding.removeAdminButton.setOnClickListener { confirmRemoveAdminAndUninstall() }
+        binding.removeAdminButton.setOnClickListener { confirmRemoveAdmin() }
+
+        setupConnectivitySwitches()
     }
 
     private fun saveSelectedApps() {
@@ -48,6 +67,29 @@ class SettingsActivity : AppCompatActivity() {
         KioskPrefs.setPin(this, newPin)
         binding.newPinField.text.clear()
         Toast.makeText(this, "הסיסמה עודכנה", Toast.LENGTH_SHORT).show()
+    }
+
+    /** Opens the system's default-launcher picker so the user can select this app as Home. */
+    private fun openHomeSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_HOME_SETTINGS))
+        } catch (e: Exception) {
+            Toast.makeText(this, "לא ניתן לפתוח את הגדרות מסך הבית במכשיר זה", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun setupConnectivitySwitches() {
+        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        binding.wifiSwitch.isChecked = try { wifiManager.isWifiEnabled } catch (e: Exception) { false }
+        binding.wifiSwitch.setOnCheckedChangeListener { _, checked ->
+            CoroutineScope(Dispatchers.IO).launch { RootUtils.setWifiEnabled(checked) }
+        }
+
+        val bluetoothAdapter = android.bluetooth.BluetoothAdapter.getDefaultAdapter()
+        binding.bluetoothSwitch.isChecked = try { bluetoothAdapter?.isEnabled == true } catch (e: Exception) { false }
+        binding.bluetoothSwitch.setOnCheckedChangeListener { _, checked ->
+            CoroutineScope(Dispatchers.IO).launch { RootUtils.setBluetoothEnabled(checked) }
+        }
     }
 
     private fun enableFullLock() {
@@ -90,30 +132,28 @@ class SettingsActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun confirmRemoveAdminAndUninstall() {
+    private fun confirmRemoveAdmin() {
         androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("הסרת האפליקציה")
-            .setMessage("פעולה זו תסיר את הרשאות ניהול המכשיר ותמחק את האפליקציה לגמרי מהמכשיר. להמשיך?")
-            .setPositiveButton("הסר ומחק") { _, _ -> removeAdminAndUninstall() }
+            .setTitle("הסרת ניהול המכשיר")
+            .setMessage(
+                "פעולה זו תסיר את הרשאות ניהול המכשיר מהאפליקציה ותפעיל אתחול מיידי. " +
+                    "אחרי האתחול תוכל להסיר את האפליקציה כרגיל דרך הגדרות ← אפליקציות. להמשיך?"
+            )
+            .setPositiveButton("הסר ואתחל") { _, _ -> removeAdminAndReboot() }
             .setNegativeButton("ביטול", null)
             .show()
     }
 
-    private fun removeAdminAndUninstall() {
+    private fun removeAdminAndReboot() {
         CoroutineScope(Dispatchers.Main).launch {
-            val success = withContext(Dispatchers.IO) {
-                if (!RootUtils.isRootAvailable()) return@withContext false
-                RootUtils.removeDeviceOwnerAndUninstall(this@SettingsActivity)
+            val rootOk = withContext(Dispatchers.IO) { RootUtils.isRootAvailable() }
+            if (!rootOk) {
+                Toast.makeText(this@SettingsActivity, "לא זוהתה הרשאת root", Toast.LENGTH_LONG).show()
+                return@launch
             }
-            if (!success) {
-                Toast.makeText(
-                    this@SettingsActivity,
-                    "לא ניתן היה להסיר את האפליקציה. ודא שיש הרשאת root.",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-            // If successful, the app is uninstalled by this point and this
-            // process will be killed by the system shortly on its own.
+            Toast.makeText(this@SettingsActivity, "מסיר ניהול מכשיר, המכשיר יתאתחל כעת...", Toast.LENGTH_LONG).show()
+            withContext(Dispatchers.IO) { RootUtils.removeDeviceOwnerAndReboot(this@SettingsActivity) }
+            // Device reboots at this point; nothing further to do here.
         }
     }
 }
