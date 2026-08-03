@@ -78,4 +78,102 @@
         android:layout_height="64dp"
         android:layout_gravity="top|start" />
 
+    <!-- always-visible pull tab to open the quick-settings curtain -->
+    <LinearLayout
+        android:id="@+id/curtainHandle"
+        android:layout_width="56dp"
+        android:layout_height="20dp"
+        android:layout_gravity="top|center_horizontal"
+        android:background="@drawable/curtain_handle_background"
+        android:gravity="center">
+
+        <View
+            android:layout_width="28dp"
+            android:layout_height="4dp"
+            android:background="#88FFFFFF" />
+
+    </LinearLayout>
+
+    <!-- quick-settings curtain, slides down from above the screen -->
+    <LinearLayout
+        android:id="@+id/curtainPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:orientation="vertical"
+        android:background="#EE1C1C24"
+        android:padding="20dp"
+        android:translationY="-400dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="הגדרות מהירות"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:layout_marginBottom="12dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Wi-Fi"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp" />
+
+            <Switch
+                android:id="@+id/curtainWifiSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Bluetooth"
+                android:textColor="#FFFFFF"
+                android:textSize="15sp" />
+
+            <Switch
+                android:id="@+id/curtainBluetoothSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/curtainBluetoothDevicesButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="מכשירי Bluetooth" />
+
+        <Button
+            android:id="@+id/curtainCloseButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="סגור" />
+
+    </LinearLayout>
+
 </FrameLayout>
