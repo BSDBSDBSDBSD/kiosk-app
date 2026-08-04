@@ -80,10 +80,18 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun setupConnectivitySwitches() {
-        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        binding.wifiSwitch.isChecked = try { wifiManager.isWifiEnabled } catch (e: Exception) { false }
-        binding.wifiSwitch.setOnCheckedChangeListener { _, checked ->
-            CoroutineScope(Dispatchers.IO).launch { RootUtils.setWifiEnabled(checked) }
+        if (!BuildConfig.WIFI_ENABLED) {
+            binding.settingsWifiRow.visibility = android.view.View.GONE
+            binding.settingsWifiNetworksButton.visibility = android.view.View.GONE
+        } else {
+            val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            binding.wifiSwitch.isChecked = try { wifiManager.isWifiEnabled } catch (e: Exception) { false }
+            binding.wifiSwitch.setOnCheckedChangeListener { _, checked ->
+                CoroutineScope(Dispatchers.IO).launch { RootUtils.setWifiEnabled(checked) }
+            }
+            binding.settingsWifiNetworksButton.setOnClickListener {
+                Toast.makeText(this, "פתח את הוילון במסך הבית כדי לחפש רשתות", Toast.LENGTH_SHORT).show()
+            }
         }
 
         val bluetoothAdapter = android.bluetooth.BluetoothAdapter.getDefaultAdapter()

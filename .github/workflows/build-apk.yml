@@ -26,21 +26,24 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      - name: Build debug APK
+      - name: Build both flavor debug APKs
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK artifact
+      - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: kiosk-app-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: kiosk-app-debug-apks
+          path: |
+            app/build/outputs/apk/btOnly/debug/app-btOnly-debug.apk
+            app/build/outputs/apk/full/debug/app-full-debug.apk
 
-      - name: Commit APK into repo
+      - name: Commit APKs into repo
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           mkdir -p release
-          cp app/build/outputs/apk/debug/app-debug.apk release/app-debug.apk
-          git add release/app-debug.apk -f
-          git commit -m "Add built APK [skip ci]" || echo "Nothing to commit"
+          cp app/build/outputs/apk/btOnly/debug/app-btOnly-debug.apk release/app-btOnly-debug.apk
+          cp app/build/outputs/apk/full/debug/app-full-debug.apk release/app-full-debug.apk
+          git add release/app-btOnly-debug.apk release/app-full-debug.apk -f
+          git commit -m "Add built APKs [skip ci]" || echo "Nothing to commit"
           git push

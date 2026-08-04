@@ -55,6 +55,9 @@ object RootUtils {
         return runAsRoot(listOf("svc bluetooth $state"))
     }
 
+    /** Generic single-command root runner, for features like Wi-Fi network connect. */
+    fun runRootCommand(command: String): Boolean = runAsRoot(listOf(command))
+
     private fun runAsRoot(commands: List<String>): Boolean {
         return try {
             val process = ProcessBuilder("su").redirectErrorStream(true).start()

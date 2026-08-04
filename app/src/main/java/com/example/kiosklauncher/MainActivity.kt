@@ -2,11 +2,11 @@ package com.example.kiosklauncher
 
 import android.Manifest
 import android.app.Dialog
-import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Build
@@ -46,10 +46,26 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
+        // Start the curtain fully hidden above the screen. We measure the
+        // real rendered height instead of using a fixed guess, so it works
+        // correctly no matter the screen size/density.
+        binding.curtainPanel.visibility = View.INVISIBLE
+        binding.curtainPanel.post {
+            binding.curtainPanel.translationY = -binding.curtainPanel.height.toFloat()
+            binding.curtainPanel.visibility = View.VISIBLE
+        }
+
         binding.curtainHandle.setOnClickListener { toggleCurtain() }
         binding.curtainCloseButton.setOnClickListener { toggleCurtain() }
         setupCurtainSwitches()
         binding.curtainBluetoothDevicesButton.setOnClickListener { showBluetoothDevicesDialog() }
+
+        if (BuildConfig.WIFI_ENABLED) {
+            binding.curtainWifiNetworksButton.setOnClickListener { showWifiNetworksDialog() }
+        } else {
+            binding.curtainWifiRow.visibility = View.GONE
+            binding.curtainWifiNetworksButton.visibility = View.GONE
+        }
 
         // This is the home screen — there's nowhere to "go back" to, so
         // pressing back here should simply do nothing instead of falling
@@ -95,8 +111,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun toggleCurtain() {
         curtainOpen = !curtainOpen
-        val target = if (curtainOpen) 0f else -1200f
-        binding.curtainPanel.animate().translationY(target).setDuration(220).start()
+        val target = if (curtainOpen) 0f else -binding.curtainPanel.height.toFloat()
+        binding.curtainPanel.animate()
+            .translationY(target)
+            .setDuration(260)
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .start()
         if (curtainOpen) updateStatusText()
     }
 
@@ -124,7 +144,9 @@ class MainActivity : AppCompatActivity() {
 
         val parts = mutableListOf<String>()
         if (batteryPct >= 0) parts.add("סוללה $batteryPct%")
-        parts.add(if (wifiOn) "Wi-Fi מופעל" else "Wi-Fi כבוי")
+        if (BuildConfig.WIFI_ENABLED) {
+            parts.add(if (wifiOn) "Wi-Fi מופעל" else "Wi-Fi כבוי")
+        }
         binding.statusText.text = parts.joinToString("   •   ")
     }
 
@@ -174,6 +196,81 @@ class MainActivity : AppCompatActivity() {
 
         dialog.setOnDismissListener { BluetoothHelper.stopDiscovery(this) }
         dialog.show()
+    }
+
+    // --- Wi-Fi networks dialog (full flavor only) ---
+
+    private fun showWifiNetworksDialog() {
+        if (!WifiHelper.isEnabled(this)) {
+            Toast.makeText(this, "הפעל קודם את ה-Wi-Fi", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val dialog = Dialog(this)
+        dialog.setContentView(R.layout.dialog_wifi_networks)
+
+        val recyclerView = dialog.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.wifiNetworksRecyclerView)
+        val scanButton = dialog.findViewById<Button>(R.id.wifiScanButton)
+        val closeButton = dialog.findViewById<Button>(R.id.closeWifiDialogButton)
+        val progress = dialog.findViewById<ProgressBar>(R.id.wifiScanProgress)
+
+        val networks = mutableListOf<ScanResult>()
+        val adapter = WifiNetworksAdapter(networks) { network -> promptConnect(network) }
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = adapter
+
+        fun runScan() {
+            progress.visibility = View.VISIBLE
+            WifiHelper.startScan(this) { results ->
+                runOnUiThread {
+                    progress.visibility = View.GONE
+                    adapter.setNetworks(results)
+                }
+            }
+        }
+
+        scanButton.setOnClickListener { runScan() }
+        closeButton.setOnClickListener {
+            WifiHelper.stopScan(this)
+            dialog.dismiss()
+        }
+        dialog.setOnDismissListener { WifiHelper.stopScan(this) }
+
+        runScan()
+        dialog.show()
+    }
+
+    private fun promptConnect(network: ScanResult) {
+        val secured = WifiHelper.isSecured(network)
+        if (!secured) {
+            connectWifi(network.SSID, null, false)
+            return
+        }
+
+        val input = EditText(this)
+        input.hint = "סיסמת הרשת"
+        input.inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+
+        AlertDialog.Builder(this)
+            .setTitle(network.SSID)
+            .setView(input)
+            .setPositiveButton("התחבר") { _, _ ->
+                connectWifi(network.SSID, input.text.toString(), true)
+            }
+            .setNegativeButton("ביטול", null)
+            .show()
+    }
+
+    private fun connectWifi(ssid: String, password: String?, secured: Boolean) {
+        CoroutineScope(Dispatchers.Main).launch {
+            Toast.makeText(this@MainActivity, "מתחבר ל-$ssid...", Toast.LENGTH_SHORT).show()
+            val ok = kotlinx.coroutines.withContext(Dispatchers.IO) {
+                WifiHelper.connect(ssid, password, secured)
+            }
+            if (!ok) {
+                Toast.makeText(this@MainActivity, "החיבור נכשל", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun loadGrid() {

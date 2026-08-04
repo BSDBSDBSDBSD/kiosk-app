@@ -15,6 +15,21 @@ android {
         versionName "1.0"
     }
 
+    flavorDimensions "edition"
+    productFlavors {
+        btOnly {
+            dimension "edition"
+            applicationIdSuffix ".btonly"
+            buildConfigField "boolean", "WIFI_ENABLED", "false"
+            resValue "string", "app_name", "Kiosk Launcher (BT)"
+        }
+        full {
+            dimension "edition"
+            buildConfigField "boolean", "WIFI_ENABLED", "true"
+            resValue "string", "app_name", "Kiosk Launcher"
+        }
+    }
+
     signingConfigs {
         debug {
             storeFile file('../debug.keystore')
@@ -44,6 +59,7 @@ android {
 
     buildFeatures {
         viewBinding true
+        buildConfig true
     }
 }
 
