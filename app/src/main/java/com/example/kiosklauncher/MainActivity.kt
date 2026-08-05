@@ -6,13 +6,17 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.text.InputType
+import android.view.MotionEvent
 import android.view.View
+import android.view.animation.DecelerateInterpolator
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ProgressBar
@@ -28,11 +32,17 @@ import com.example.kiosklauncher.databinding.ActivityMainBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private var curtainOpen = false
+
+    // drag-tracking state for the curtain handle
+    private var dragStartRawY = 0f
+    private var dragStartTranslation = 0f
+    private var isDragging = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,8 +65,8 @@ class MainActivity : AppCompatActivity() {
             binding.curtainPanel.visibility = View.VISIBLE
         }
 
-        binding.curtainHandle.setOnClickListener { toggleCurtain() }
-        binding.curtainCloseButton.setOnClickListener { toggleCurtain() }
+        setupCurtainDragHandle()
+        binding.curtainCloseButton.setOnClickListener { animateCurtain(false) }
         setupCurtainSwitches()
         binding.curtainBluetoothDevicesButton.setOnClickListener { showBluetoothDevicesDialog() }
 
@@ -72,7 +82,7 @@ class MainActivity : AppCompatActivity() {
         // through to the system Recents/Overview screen.
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
-                if (curtainOpen) toggleCurtain()
+                if (curtainOpen) animateCurtain(false)
             }
         })
 
@@ -93,11 +103,12 @@ class MainActivity : AppCompatActivity() {
 
     private fun requestConnectivityPermissions() {
         val perms = mutableListOf<String>()
+        // Wi-Fi scan results require location permission on every Android
+        // version (unlike Bluetooth, this did not change with neverForLocation).
+        perms.add(Manifest.permission.ACCESS_FINE_LOCATION)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             perms.add(Manifest.permission.BLUETOOTH_CONNECT)
             perms.add(Manifest.permission.BLUETOOTH_SCAN)
-        } else {
-            perms.add(Manifest.permission.ACCESS_FINE_LOCATION)
         }
         val toRequest = perms.filter {
             ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
@@ -107,17 +118,94 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** True if the required scan permission(s) are actually granted. */
+    private fun hasScanPermissions(): Boolean {
+        val fineLocation = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        val btOk = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) ==
+                PackageManager.PERMISSION_GRANTED
+        } else true
+        return fineLocation && btOk
+    }
+
+    /** Both classic Bluetooth discovery and Wi-Fi scanning silently return zero
+     *  results if system Location is turned off, even with permission granted. */
+    private fun isLocationServicesEnabled(): Boolean {
+        val lm = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return try { lm.isLocationEnabled } catch (e: Exception) { true }
+    }
+
+    private fun warnIfScanBlocked(): Boolean {
+        if (!hasScanPermissions()) {
+            Toast.makeText(this, "חסרה הרשאת מיקום/Bluetooth לסריקה - אשר אותה ונסה שוב", Toast.LENGTH_LONG).show()
+            requestConnectivityPermissions()
+            return true
+        }
+        if (!isLocationServicesEnabled()) {
+            AlertDialog.Builder(this)
+                .setTitle("מיקום כבוי")
+                .setMessage("חיפוש מכשירי Bluetooth ורשתות Wi-Fi דורש שהמיקום (Location) יהיה פעיל במערכת, גם אם לא נעשה בו שימוש בפועל. להפעיל עכשיו?")
+                .setPositiveButton("פתח הגדרות מיקום") { _, _ ->
+                    startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                }
+                .setNegativeButton("ביטול", null)
+                .show()
+            return true
+        }
+        return false
+    }
+
     // --- Curtain (quick settings panel) ---
 
-    private fun toggleCurtain() {
-        curtainOpen = !curtainOpen
-        val target = if (curtainOpen) 0f else -binding.curtainPanel.height.toFloat()
+    private fun setupCurtainDragHandle() {
+        binding.curtainHandle.setOnTouchListener { _, event ->
+            val panelHeight = binding.curtainPanel.height.toFloat()
+                .let { if (it <= 0f) 700f else it }
+
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    dragStartRawY = event.rawY
+                    dragStartTranslation = binding.curtainPanel.translationY
+                    isDragging = false
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val delta = event.rawY - dragStartRawY
+                    if (abs(delta) > 6) isDragging = true
+                    if (isDragging) {
+                        val newTranslation = (dragStartTranslation + delta).coerceIn(-panelHeight, 0f)
+                        binding.curtainPanel.translationY = newTranslation
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (isDragging) {
+                        val shouldOpen = binding.curtainPanel.translationY > -panelHeight / 2
+                        animateCurtain(shouldOpen)
+                    } else {
+                        // treated as a simple tap
+                        animateCurtain(!curtainOpen)
+                    }
+                    isDragging = false
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun animateCurtain(open: Boolean) {
+        curtainOpen = open
+        val panelHeight = binding.curtainPanel.height.toFloat()
+            .let { if (it <= 0f) 700f else it }
+        val target = if (open) 0f else -panelHeight
         binding.curtainPanel.animate()
             .translationY(target)
-            .setDuration(260)
-            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .setDuration(220)
+            .setInterpolator(DecelerateInterpolator())
             .start()
-        if (curtainOpen) updateStatusText()
+        if (open) updateStatusText()
     }
 
     private fun setupCurtainSwitches() {
@@ -161,6 +249,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "הפעל קודם את ה-Bluetooth", Toast.LENGTH_SHORT).show()
             return
         }
+        if (warnIfScanBlocked()) return
 
         val dialog = Dialog(this)
         dialog.setContentView(R.layout.dialog_bluetooth_devices)
@@ -205,6 +294,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "הפעל קודם את ה-Wi-Fi", Toast.LENGTH_SHORT).show()
             return
         }
+        if (warnIfScanBlocked()) return
 
         val dialog = Dialog(this)
         dialog.setContentView(R.layout.dialog_wifi_networks)
@@ -225,6 +315,9 @@ class MainActivity : AppCompatActivity() {
                 runOnUiThread {
                     progress.visibility = View.GONE
                     adapter.setNetworks(results)
+                    if (results.isEmpty()) {
+                        Toast.makeText(this, "לא נמצאו רשתות - נסה שוב בעוד רגע", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }

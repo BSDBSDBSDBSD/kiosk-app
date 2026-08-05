@@ -10,9 +10,16 @@ object RootUtils {
      * once; after that the app is the Device Owner and all further kiosk
      * enforcement goes through the official DevicePolicyManager APIs
      * (no more dependency on root).
+     *
+     * Important: we must use the receiver's fully-qualified class name here,
+     * NOT the relative ".ClassName" shorthand. The shorthand is resolved
+     * against the app's packageName (applicationId), which differs from the
+     * class's real package whenever a flavor uses applicationIdSuffix (like
+     * the btOnly flavor) — that mismatch made this silently fail for that
+     * flavor only.
      */
     fun setDeviceOwnerViaRoot(context: Context): Boolean {
-        val component = "${context.packageName}/.KioskDeviceAdminReceiver"
+        val component = "${context.packageName}/${KioskDeviceAdminReceiver::class.java.name}"
         val commands = listOf(
             "dpm set-device-owner $component"
         )
@@ -34,7 +41,7 @@ object RootUtils {
      * can be uninstalled normally from Settings.
      */
     fun removeDeviceOwnerAndReboot(context: Context): Boolean {
-        val component = "${context.packageName}/.KioskDeviceAdminReceiver"
+        val component = "${context.packageName}/${KioskDeviceAdminReceiver::class.java.name}"
         val commands = listOf(
             "dpm remove-active-admin $component 2>/dev/null",
             "mv /data/system/device_policies.xml /data/system/device_policies.xml.bak 2>/dev/null",
