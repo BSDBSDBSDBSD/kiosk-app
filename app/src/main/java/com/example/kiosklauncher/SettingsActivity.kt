@@ -48,7 +48,6 @@ class SettingsActivity : AppCompatActivity() {
         binding.enableLockButton.setOnClickListener { enableFullLock() }
         binding.disableLockButton.setOnClickListener { disableFullLock() }
         binding.clearOwnerButton.setOnClickListener { confirmClearDeviceOwner() }
-        binding.removeAdminButton.setOnClickListener { confirmRemoveAdmin() }
 
         setupConnectivitySwitches()
     }
@@ -162,34 +161,9 @@ class SettingsActivity : AppCompatActivity() {
         } else {
             Toast.makeText(
                 this,
-                "לא ניתן היה להסיר את ההרשאות בדרך זו - נסה את הכפתור האדום (דורש root ואתחול).",
+                "לא ניתן היה להסיר את ההרשאות. ודא שיש הרשאת root ונסה שוב.",
                 Toast.LENGTH_LONG
             ).show()
-        }
-    }
-
-    private fun confirmRemoveAdmin() {
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("הסרת ניהול המכשיר")
-            .setMessage(
-                "פעולה זו תסיר את הרשאות ניהול המכשיר מהאפליקציה ותפעיל אתחול מיידי. " +
-                    "אחרי האתחול תוכל להסיר את האפליקציה כרגיל דרך הגדרות ← אפליקציות. להמשיך?"
-            )
-            .setPositiveButton("הסר ואתחל") { _, _ -> removeAdminAndReboot() }
-            .setNegativeButton("ביטול", null)
-            .show()
-    }
-
-    private fun removeAdminAndReboot() {
-        CoroutineScope(Dispatchers.Main).launch {
-            val rootOk = withContext(Dispatchers.IO) { RootUtils.isRootAvailable() }
-            if (!rootOk) {
-                Toast.makeText(this@SettingsActivity, "לא זוהתה הרשאת root", Toast.LENGTH_LONG).show()
-                return@launch
-            }
-            Toast.makeText(this@SettingsActivity, "מסיר ניהול מכשיר, המכשיר יתאתחל כעת...", Toast.LENGTH_LONG).show()
-            withContext(Dispatchers.IO) { RootUtils.removeDeviceOwnerAndReboot(this@SettingsActivity) }
-            // Device reboots at this point; nothing further to do here.
         }
     }
 }

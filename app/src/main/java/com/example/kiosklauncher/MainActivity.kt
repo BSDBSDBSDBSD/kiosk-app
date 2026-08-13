@@ -197,6 +197,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun animateCurtain(open: Boolean) {
         curtainOpen = open
+        binding.curtainHandle.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
         val panelHeight = binding.curtainPanel.height.toFloat()
             .let { if (it <= 0f) 700f else it }
         val target = if (open) 0f else -panelHeight

@@ -71,28 +71,29 @@
         android:paddingBottom="24dp"
         android:clipToPadding="false" />
 
-    <!-- hidden long-press zone, top-left corner, away from system gesture areas -->
+    <!-- pull-to-open zone for the curtain: wide touch target, small visual pill -->
+    <LinearLayout
+        android:id="@+id/curtainHandle"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_gravity="top|center_horizontal"
+        android:gravity="bottom|center_horizontal"
+        android:paddingBottom="8dp">
+
+        <View
+            android:layout_width="56dp"
+            android:layout_height="6dp"
+            android:background="@drawable/curtain_handle_background" />
+
+    </LinearLayout>
+
+    <!-- hidden long-press zone, top-left corner, away from system gesture areas.
+         Placed after curtainHandle so it wins touch priority in their small overlap. -->
     <View
         android:id="@+id/adminCornerTrigger"
         android:layout_width="64dp"
         android:layout_height="64dp"
         android:layout_gravity="top|start" />
-
-    <!-- always-visible pull tab to open the quick-settings curtain -->
-    <LinearLayout
-        android:id="@+id/curtainHandle"
-        android:layout_width="56dp"
-        android:layout_height="20dp"
-        android:layout_gravity="top|center_horizontal"
-        android:background="@drawable/curtain_handle_background"
-        android:gravity="center">
-
-        <View
-            android:layout_width="28dp"
-            android:layout_height="4dp"
-            android:background="#88FFFFFF" />
-
-    </LinearLayout>
 
     <!-- quick-settings curtain, slides down from above the screen -->
     <LinearLayout
