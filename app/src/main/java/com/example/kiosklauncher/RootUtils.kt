@@ -5,6 +5,8 @@ import java.io.DataOutputStream
 
 object RootUtils {
 
+    data class Result(val success: Boolean, val log: String)
+
     /**
      * Runs `dpm set-device-owner` via a root shell. This only needs to run
      * once; after that the app is the Device Owner and all further kiosk
@@ -18,15 +20,28 @@ object RootUtils {
      * the btOnly flavor) — that mismatch made this silently fail for that
      * flavor only.
      */
-    fun setDeviceOwnerViaRoot(context: Context): Boolean {
+    fun setDeviceOwnerViaRoot(context: Context): Result {
         val component = "${context.packageName}/${KioskDeviceAdminReceiver::class.java.name}"
-        val commands = listOf(
-            "dpm set-device-owner $component"
-        )
-        return runAsRoot(commands)
+        val commands = mutableListOf("dpm set-device-owner $component")
+        val output = runAsRootWithOutput(commands)
+        val success = output.contains("Success")
+        // If it failed, also dump who currently holds device owner (if
+        // anyone) - a very common cause is a DIFFERENT app/flavor already
+        // holding it from earlier testing, which only that app (or a
+        // factory reset) can release.
+        val diagnostics = if (!success) {
+            runAsRootWithOutput(listOf("dumpsys device_policy | grep -i 'device owner' -A 3"))
+        } else ""
+        return Result(success, if (diagnostics.isNotBlank()) "$output\n\nמצב Device Owner נוכחי:\n$diagnostics" else output)
     }
 
     fun isRootAvailable(): Boolean = runAsRoot(listOf("id"))
+
+    /** Standalone diagnostic - shows who (if anyone) currently holds Device Owner, without attempting to change anything. */
+    fun dumpDeviceOwnerStatus(): String {
+        val output = runAsRootWithOutput(listOf("dumpsys device_policy | grep -i 'device owner' -A 3"))
+        return if (output.isBlank()) "אין מידע זמין (או שאין Device Owner פעיל כרגע)" else output
+    }
 
     fun setWifiEnabled(enabled: Boolean): Boolean {
         val state = if (enabled) "enable" else "disable"
@@ -55,6 +70,24 @@ object RootUtils {
         } catch (e: Exception) {
             e.printStackTrace()
             false
+        }
+    }
+
+    private fun runAsRootWithOutput(commands: List<String>): String {
+        return try {
+            val process = ProcessBuilder("su").redirectErrorStream(true).start()
+            val os = DataOutputStream(process.outputStream)
+            for (cmd in commands) {
+                os.writeBytes("$cmd\n")
+            }
+            os.writeBytes("exit\n")
+            os.flush()
+            os.close()
+            val output = process.inputStream.bufferedReader().readText()
+            process.waitFor()
+            output.trim()
+        } catch (e: Exception) {
+            "שגיאה: ${e.message}"
         }
     }
 }

@@ -129,6 +129,13 @@
             android:text="הגדר כמסך בית ברירת מחדל" />
 
         <Button
+            android:id="@+id/checkOwnerStatusButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="בדוק מצב Device Owner נוכחי" />
+
+        <Button
             android:id="@+id/enableLockButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

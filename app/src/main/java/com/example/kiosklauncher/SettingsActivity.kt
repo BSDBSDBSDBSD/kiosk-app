@@ -45,6 +45,7 @@ class SettingsActivity : AppCompatActivity() {
         binding.saveAppsButton.setOnClickListener { saveSelectedApps() }
         binding.changePinButton.setOnClickListener { changePin() }
         binding.setHomeButton.setOnClickListener { openHomeSettings() }
+        binding.checkOwnerStatusButton.setOnClickListener { checkOwnerStatus() }
         binding.enableLockButton.setOnClickListener { enableFullLock() }
         binding.disableLockButton.setOnClickListener { disableFullLock() }
         binding.clearOwnerButton.setOnClickListener { confirmClearDeviceOwner() }
@@ -100,34 +101,61 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    private fun checkOwnerStatus() {
+        CoroutineScope(Dispatchers.Main).launch {
+            val isOwnerHere = KioskManager.isDeviceOwner(this@SettingsActivity)
+            val dump = withContext(Dispatchers.IO) { RootUtils.dumpDeviceOwnerStatus() }
+            androidx.appcompat.app.AlertDialog.Builder(this@SettingsActivity)
+                .setTitle("מצב Device Owner")
+                .setMessage(
+                    "האפליקציה הזו היא Device Owner: ${if (isOwnerHere) "כן" else "לא"}\n\n" +
+                        "פלט מלא מהמערכת:\n$dump"
+                )
+                .setPositiveButton("סגור", null)
+                .show()
+        }
+    }
+
     private fun enableFullLock() {
         saveSelectedApps()
         CoroutineScope(Dispatchers.Main).launch {
-            val success = withContext(Dispatchers.IO) {
-                if (!KioskManager.isDeviceOwner(this@SettingsActivity)) {
-                    if (!RootUtils.isRootAvailable()) return@withContext false
-                    RootUtils.setDeviceOwnerViaRoot(this@SettingsActivity)
-                } else {
-                    true
-                }
-            }
-
-            if (!success || !KioskManager.isDeviceOwner(this@SettingsActivity)) {
-                Toast.makeText(
-                    this@SettingsActivity,
-                    "לא ניתן היה להפוך את האפליקציה ל-Device Owner. ודא שאין חשבון Google מוגדר במכשיר ושיש הרשאת root.",
-                    Toast.LENGTH_LONG
-                ).show()
+            if (KioskManager.isDeviceOwner(this@SettingsActivity)) {
+                finishEnablingLock()
                 return@launch
             }
 
-            val allowedPackages = KioskPrefs.getAllowedPackages(this@SettingsActivity)
-            KioskManager.configureLockTask(this@SettingsActivity, allowedPackages)
-            KioskPrefs.setLockEnabled(this@SettingsActivity, true)
+            val rootOk = withContext(Dispatchers.IO) { RootUtils.isRootAvailable() }
+            if (!rootOk) {
+                Toast.makeText(this@SettingsActivity, "לא זוהתה הרשאת root", Toast.LENGTH_LONG).show()
+                return@launch
+            }
 
-            Toast.makeText(this@SettingsActivity, "נעילת קיוסק הופעלה", Toast.LENGTH_LONG).show()
-            finish()
+            val result = withContext(Dispatchers.IO) { RootUtils.setDeviceOwnerViaRoot(this@SettingsActivity) }
+
+            if (!result.success || !KioskManager.isDeviceOwner(this@SettingsActivity)) {
+                androidx.appcompat.app.AlertDialog.Builder(this@SettingsActivity)
+                    .setTitle("ההפעלה נכשלה")
+                    .setMessage(
+                        "לא ניתן היה להפוך את האפליקציה ל-Device Owner.\n\n" +
+                            "פלט הפקודה בפועל:\n${result.log}\n\n" +
+                            "סיבות נפוצות: יש כבר Device Owner אחר במכשיר (מבדיקה קודמת עם " +
+                            "פלייבור/אפליקציה אחרת), יש חשבון Google מוגדר, או שאין הרשאת root מספקת."
+                    )
+                    .setPositiveButton("הבנתי", null)
+                    .show()
+                return@launch
+            }
+
+            finishEnablingLock()
         }
+    }
+
+    private fun finishEnablingLock() {
+        val allowedPackages = KioskPrefs.getAllowedPackages(this)
+        KioskManager.configureLockTask(this, allowedPackages)
+        KioskPrefs.setLockEnabled(this, true)
+        Toast.makeText(this, "נעילת קיוסק הופעלה", Toast.LENGTH_LONG).show()
+        finish()
     }
 
     private fun disableFullLock() {
