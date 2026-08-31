@@ -68,6 +68,7 @@ class MainActivity : AppCompatActivity() {
         setupCurtainDragHandle()
         binding.curtainCloseButton.setOnClickListener { animateCurtain(false) }
         setupCurtainSwitches()
+        setupCurtainSliders()
         binding.curtainBluetoothDevicesButton.setOnClickListener { showBluetoothDevicesDialog() }
 
         if (BuildConfig.WIFI_ENABLED) {
@@ -99,6 +100,15 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         loadGrid()
         updateStatusText()
+        applyKeepScreenOn()
+    }
+
+    private fun applyKeepScreenOn() {
+        if (KioskPrefs.isKeepScreenOnEnabled(this)) {
+            window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 
     private fun requestConnectivityPermissions() {
@@ -207,6 +217,43 @@ class MainActivity : AppCompatActivity() {
             .setInterpolator(DecelerateInterpolator())
             .start()
         if (open) updateStatusText()
+    }
+
+    private fun setupCurtainSliders() {
+        // Brightness - live preview via window attributes + persisted via root
+        val currentBrightness = try {
+            android.provider.Settings.System.getInt(contentResolver, android.provider.Settings.System.SCREEN_BRIGHTNESS)
+        } catch (e: Exception) { 128 }
+        binding.curtainBrightnessSeekBar.progress = currentBrightness
+        binding.curtainBrightnessSeekBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                val lp = window.attributes
+                lp.screenBrightness = (progress.coerceIn(1, 255)) / 255f
+                window.attributes = lp
+            }
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
+                val value = seekBar?.progress ?: return
+                CoroutineScope(Dispatchers.IO).launch {
+                    RootUtils.runRootCommand("settings put system screen_brightness $value")
+                }
+            }
+        })
+
+        // Volume
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+        val maxVolume = audioManager.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+        binding.curtainVolumeSeekBar.max = maxVolume
+        binding.curtainVolumeSeekBar.progress = audioManager.getStreamVolume(android.media.AudioManager.STREAM_MUSIC)
+        binding.curtainVolumeSeekBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                audioManager.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, progress, 0)
+            }
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {}
+        })
     }
 
     private fun setupCurtainSwitches() {

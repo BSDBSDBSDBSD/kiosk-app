@@ -37,12 +37,6 @@ object RootUtils {
 
     fun isRootAvailable(): Boolean = runAsRoot(listOf("id"))
 
-    /** Standalone diagnostic - shows who (if anyone) currently holds Device Owner, without attempting to change anything. */
-    fun dumpDeviceOwnerStatus(): String {
-        val output = runAsRootWithOutput(listOf("dumpsys device_policy | grep -i 'device owner' -A 3"))
-        return if (output.isBlank()) "אין מידע זמין (או שאין Device Owner פעיל כרגע)" else output
-    }
-
     fun setWifiEnabled(enabled: Boolean): Boolean {
         val state = if (enabled) "enable" else "disable"
         return runAsRoot(listOf("svc wifi $state"))

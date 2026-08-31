@@ -45,7 +45,6 @@ class SettingsActivity : AppCompatActivity() {
         binding.saveAppsButton.setOnClickListener { saveSelectedApps() }
         binding.changePinButton.setOnClickListener { changePin() }
         binding.setHomeButton.setOnClickListener { openHomeSettings() }
-        binding.checkOwnerStatusButton.setOnClickListener { checkOwnerStatus() }
         binding.enableLockButton.setOnClickListener { enableFullLock() }
         binding.disableLockButton.setOnClickListener { disableFullLock() }
         binding.clearOwnerButton.setOnClickListener { confirmClearDeviceOwner() }
@@ -99,20 +98,10 @@ class SettingsActivity : AppCompatActivity() {
         binding.bluetoothSwitch.setOnCheckedChangeListener { _, checked ->
             CoroutineScope(Dispatchers.IO).launch { RootUtils.setBluetoothEnabled(checked) }
         }
-    }
 
-    private fun checkOwnerStatus() {
-        CoroutineScope(Dispatchers.Main).launch {
-            val isOwnerHere = KioskManager.isDeviceOwner(this@SettingsActivity)
-            val dump = withContext(Dispatchers.IO) { RootUtils.dumpDeviceOwnerStatus() }
-            androidx.appcompat.app.AlertDialog.Builder(this@SettingsActivity)
-                .setTitle("מצב Device Owner")
-                .setMessage(
-                    "האפליקציה הזו היא Device Owner: ${if (isOwnerHere) "כן" else "לא"}\n\n" +
-                        "פלט מלא מהמערכת:\n$dump"
-                )
-                .setPositiveButton("סגור", null)
-                .show()
+        binding.keepScreenOnSwitch.isChecked = KioskPrefs.isKeepScreenOnEnabled(this)
+        binding.keepScreenOnSwitch.setOnCheckedChangeListener { _, checked ->
+            KioskPrefs.setKeepScreenOnEnabled(this, checked)
         }
     }
 

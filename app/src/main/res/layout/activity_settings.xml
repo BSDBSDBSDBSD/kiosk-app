@@ -93,6 +93,27 @@
 
         </LinearLayout>
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingTop="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="השאר מסך דלוק תמיד"
+                android:textSize="15sp" />
+
+            <Switch
+                android:id="@+id/keepScreenOnSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+        </LinearLayout>
+
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -129,17 +150,10 @@
             android:text="הגדר כמסך בית ברירת מחדל" />
 
         <Button
-            android:id="@+id/checkOwnerStatusButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="בדוק מצב Device Owner נוכחי" />
-
-        <Button
             android:id="@+id/enableLockButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="16dp"
             android:text="הפעל נעילת קיוסק מלאה (דורש root)" />
 
         <Button

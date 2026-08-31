@@ -8,6 +8,7 @@ object KioskPrefs {
     private const val KEY_ALLOWED = "allowed_packages"
     private const val KEY_PIN_HASH = "pin_hash"
     private const val KEY_LOCK_ENABLED = "lock_enabled"
+    private const val KEY_KEEP_SCREEN_ON = "keep_screen_on"
     private const val DEFAULT_PIN = "1234"
 
     private fun sha256(input: String): String {
@@ -41,5 +42,13 @@ object KioskPrefs {
 
     fun setLockEnabled(context: Context, enabled: Boolean) {
         prefs(context).edit().putBoolean(KEY_LOCK_ENABLED, enabled).apply()
+    }
+
+    fun isKeepScreenOnEnabled(context: Context): Boolean {
+        return prefs(context).getBoolean(KEY_KEEP_SCREEN_ON, false)
+    }
+
+    fun setKeepScreenOnEnabled(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean(KEY_KEEP_SCREEN_ON, enabled).apply()
     }
 }
