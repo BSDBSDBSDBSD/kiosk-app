@@ -94,6 +94,72 @@ class MainActivity : AppCompatActivity() {
         }
 
         loadGrid()
+        setupScreensaver()
+    }
+
+    // --- Idle screensaver ---
+
+    private val screensaverHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private var screensaverActive = false
+    private val idleTimeoutMs = 60_000L
+    private val bounceRunnable = object : Runnable {
+        override fun run() {
+            moveScreensaverClockRandomly()
+            screensaverHandler.postDelayed(this, 2500)
+        }
+    }
+    private val idleRunnable = Runnable { showScreensaver() }
+
+    private fun setupScreensaver() {
+        binding.screensaverOverlay.setOnClickListener { hideScreensaver() }
+        resetIdleTimer()
+    }
+
+    private fun resetIdleTimer() {
+        screensaverHandler.removeCallbacks(idleRunnable)
+        screensaverHandler.postDelayed(idleRunnable, idleTimeoutMs)
+    }
+
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
+        if (screensaverActive && ev.action == android.view.MotionEvent.ACTION_DOWN) {
+            hideScreensaver()
+            return true
+        }
+        resetIdleTimer()
+        return super.dispatchTouchEvent(ev)
+    }
+
+    private fun showScreensaver() {
+        screensaverActive = true
+        binding.screensaverOverlay.visibility = View.VISIBLE
+        screensaverHandler.post(bounceRunnable)
+    }
+
+    private fun hideScreensaver() {
+        screensaverActive = false
+        binding.screensaverOverlay.visibility = View.GONE
+        screensaverHandler.removeCallbacks(bounceRunnable)
+        resetIdleTimer()
+    }
+
+    private fun moveScreensaverClockRandomly() {
+        val overlay = binding.screensaverOverlay
+        val clock = binding.screensaverClock
+        clock.text = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
+
+        val maxX = (overlay.width - clock.width).coerceAtLeast(1)
+        val maxY = (overlay.height - clock.height).coerceAtLeast(1)
+        val randomX = (0..maxX).random().toFloat()
+        val randomY = (0..maxY).random().toFloat()
+        val colors = listOf("#FFFFFF", "#4ADE80", "#60A5FA", "#F472B6", "#FBBF24")
+        clock.setTextColor(android.graphics.Color.parseColor(colors.random()))
+
+        clock.animate()
+            .x(randomX)
+            .y(randomY)
+            .setDuration(2400)
+            .setInterpolator(android.view.animation.LinearInterpolator())
+            .start()
     }
 
     override fun onResume() {

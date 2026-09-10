@@ -211,4 +211,35 @@
 
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/tvVersionCredit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="6dp"
+        android:gravity="center"
+        android:textSize="10sp"
+        android:textColor="#55FFFFFF"
+        android:text="גרסה 2 - נבנה ונערך על ידי @בסדבסד מתמחים טופ" />
+
+    <!-- idle screensaver: bouncing clock, tap anywhere to dismiss -->
+    <FrameLayout
+        android:id="@+id/screensaverOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#000000"
+        android:visibility="gone"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:id="@+id/screensaverClock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="40sp" />
+
+    </FrameLayout>
+
 </FrameLayout>
