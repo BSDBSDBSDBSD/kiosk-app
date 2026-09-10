@@ -25,6 +25,21 @@ class SettingsActivity : AppCompatActivity() {
     private val appList = mutableListOf<AppInfo>()
     private lateinit var adapter: SettingsAppsAdapter
 
+    // Security: this screen must never be reachable without going through
+    // the PIN dialog in MainActivity first. excludeFromRecents alone isn't
+    // airtight on every OEM/launcher, so as defense in depth we also force
+    // this activity closed the moment it's no longer visible for any reason
+    // (recents, home button, app switch) - resuming it always requires a
+    // fresh PIN entry, never a stale backgrounded instance. Using onStop
+    // rather than onPause so the BLUETOOTH_CONNECT permission dialog this
+    // screen shows doesn't itself trigger a false close.
+    override fun onStop() {
+        super.onStop()
+        if (!isFinishing) {
+            finishAndRemoveTask()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
