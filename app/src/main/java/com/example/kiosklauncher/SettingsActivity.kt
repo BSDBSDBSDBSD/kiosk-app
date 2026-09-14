@@ -25,6 +25,13 @@ class SettingsActivity : AppCompatActivity() {
     private val appList = mutableListOf<AppInfo>()
     private lateinit var adapter: SettingsAppsAdapter
 
+    // True while a root (su) action is in flight. Requesting su for the
+    // first time pops Magisk's own grant-permission Activity fully over
+    // ours - a genuine app switch that triggers onStop just like Recents
+    // does. Without this guard, the auto-close below would kill this
+    // screen while waiting for the user to tap "Grant" in Magisk.
+    private var rootActionInProgress = false
+
     // Security: this screen must never be reachable without going through
     // the PIN dialog in MainActivity first. excludeFromRecents alone isn't
     // airtight on every OEM/launcher, so as defense in depth we also force
@@ -32,10 +39,11 @@ class SettingsActivity : AppCompatActivity() {
     // (recents, home button, app switch) - resuming it always requires a
     // fresh PIN entry, never a stale backgrounded instance. Using onStop
     // rather than onPause so the BLUETOOTH_CONNECT permission dialog this
-    // screen shows doesn't itself trigger a false close.
+    // screen shows doesn't itself trigger a false close. rootActionInProgress
+    // additionally protects the Magisk su-grant prompt (see above).
     override fun onStop() {
         super.onStop()
-        if (!isFinishing) {
+        if (!isFinishing && !rootActionInProgress) {
             finishAndRemoveTask()
         }
     }
@@ -101,7 +109,14 @@ class SettingsActivity : AppCompatActivity() {
             val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
             binding.wifiSwitch.isChecked = try { wifiManager.isWifiEnabled } catch (e: Exception) { false }
             binding.wifiSwitch.setOnCheckedChangeListener { _, checked ->
-                CoroutineScope(Dispatchers.IO).launch { RootUtils.setWifiEnabled(checked) }
+                CoroutineScope(Dispatchers.IO).launch {
+                    rootActionInProgress = true
+                    try {
+                        RootUtils.setWifiEnabled(checked)
+                    } finally {
+                        rootActionInProgress = false
+                    }
+                }
             }
             binding.settingsWifiNetworksButton.setOnClickListener {
                 Toast.makeText(this, "פתח את הוילון במסך הבית כדי לחפש רשתות", Toast.LENGTH_SHORT).show()
@@ -111,7 +126,14 @@ class SettingsActivity : AppCompatActivity() {
         val bluetoothAdapter = android.bluetooth.BluetoothAdapter.getDefaultAdapter()
         binding.bluetoothSwitch.isChecked = try { bluetoothAdapter?.isEnabled == true } catch (e: Exception) { false }
         binding.bluetoothSwitch.setOnCheckedChangeListener { _, checked ->
-            CoroutineScope(Dispatchers.IO).launch { RootUtils.setBluetoothEnabled(checked) }
+            CoroutineScope(Dispatchers.IO).launch {
+                rootActionInProgress = true
+                try {
+                    RootUtils.setBluetoothEnabled(checked)
+                } finally {
+                    rootActionInProgress = false
+                }
+            }
         }
 
         binding.keepScreenOnSwitch.isChecked = KioskPrefs.isKeepScreenOnEnabled(this)
@@ -128,29 +150,34 @@ class SettingsActivity : AppCompatActivity() {
                 return@launch
             }
 
-            val rootOk = withContext(Dispatchers.IO) { RootUtils.isRootAvailable() }
-            if (!rootOk) {
-                Toast.makeText(this@SettingsActivity, "לא זוהתה הרשאת root", Toast.LENGTH_LONG).show()
-                return@launch
+            rootActionInProgress = true
+            try {
+                val rootOk = withContext(Dispatchers.IO) { RootUtils.isRootAvailable() }
+                if (!rootOk) {
+                    Toast.makeText(this@SettingsActivity, "לא זוהתה הרשאת root", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+
+                val result = withContext(Dispatchers.IO) { RootUtils.setDeviceOwnerViaRoot(this@SettingsActivity) }
+
+                if (!result.success || !KioskManager.isDeviceOwner(this@SettingsActivity)) {
+                    androidx.appcompat.app.AlertDialog.Builder(this@SettingsActivity)
+                        .setTitle("ההפעלה נכשלה")
+                        .setMessage(
+                            "לא ניתן היה להפוך את האפליקציה ל-Device Owner.\n\n" +
+                                "פלט הפקודה בפועל:\n${result.log}\n\n" +
+                                "סיבות נפוצות: יש כבר Device Owner אחר במכשיר (מבדיקה קודמת עם " +
+                                "פלייבור/אפליקציה אחרת), יש חשבון Google מוגדר, או שאין הרשאת root מספקת."
+                        )
+                        .setPositiveButton("הבנתי", null)
+                        .show()
+                    return@launch
+                }
+
+                finishEnablingLock()
+            } finally {
+                rootActionInProgress = false
             }
-
-            val result = withContext(Dispatchers.IO) { RootUtils.setDeviceOwnerViaRoot(this@SettingsActivity) }
-
-            if (!result.success || !KioskManager.isDeviceOwner(this@SettingsActivity)) {
-                androidx.appcompat.app.AlertDialog.Builder(this@SettingsActivity)
-                    .setTitle("ההפעלה נכשלה")
-                    .setMessage(
-                        "לא ניתן היה להפוך את האפליקציה ל-Device Owner.\n\n" +
-                            "פלט הפקודה בפועל:\n${result.log}\n\n" +
-                            "סיבות נפוצות: יש כבר Device Owner אחר במכשיר (מבדיקה קודמת עם " +
-                            "פלייבור/אפליקציה אחרת), יש חשבון Google מוגדר, או שאין הרשאת root מספקת."
-                    )
-                    .setPositiveButton("הבנתי", null)
-                    .show()
-                return@launch
-            }
-
-            finishEnablingLock()
         }
     }
 
